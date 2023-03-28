@@ -11,25 +11,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3.4.1
         with:
           node-version: 16
+
       - run: |
           if [ ! -f dist/index.js ]; then
             echo "Missing dist file"
             ls -l dist/
             exit 1
           fi
+
       - run: npm ci
+
       - run: npm run format-check
+
       - run: npm run lint-check
+
       - run: npm run build
+
       - run: npm run test
+
       - run: npm run pack
+
       - run: |
           if [ "$(git diff --name-only | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes to:"
             git diff
             exit 1
           fi
-      - uses: codecov/codecov-action@v3
