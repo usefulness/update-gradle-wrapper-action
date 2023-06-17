@@ -15,6 +15,7 @@
 import * as path from 'path';
 
 import {createWrapperInfo} from '../src/wrapperInfo';
+import {expect} from '@jest/globals';
 
 test('parses a valid properties file', () => {
   const propsPath = path.resolve('tests/data/gradle-wrapper.properties');

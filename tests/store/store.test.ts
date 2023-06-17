@@ -13,8 +13,9 @@
 // limitations under the License.
 
 import * as core from '@actions/core';
-
 import * as store from '../../src/store';
+
+import {expect, jest} from '@jest/globals';
 
 describe('setMainActionExecuted', () => {
   it('saves a state variable as "true"', () => {
