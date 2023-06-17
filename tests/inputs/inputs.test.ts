@@ -15,19 +15,18 @@
 import * as core from '@actions/core';
 
 import {getInputs} from '../../src/inputs';
+import {expect, jest} from '@jest/globals';
+
 jest.mock('@actions/core');
 
 describe('getInputs', () => {
   let ymlInputs = {} as {[key: string]: string};
 
-  beforeAll(() => {
+  beforeEach(() => {
+    ymlInputs = {};
     jest.spyOn(core, 'getInput').mockImplementation((name: string) => {
       return ymlInputs[name] || '';
     });
-  });
-
-  beforeEach(() => {
-    ymlInputs = {};
   });
 
   it('throws if repo-token is empty', () => {
@@ -44,15 +43,15 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
-        "labels": Array [],
-        "paths": Array [],
-        "pathsIgnore": Array [],
+        "labels": [],
+        "paths": [],
+        "pathsIgnore": [],
         "releaseChannel": "stable",
         "repoToken": "s3cr3t",
-        "reviewers": Array [],
+        "reviewers": [],
         "setDistributionChecksum": true,
         "targetBranch": "",
-        "teamReviewers": Array [],
+        "teamReviewers": [],
       }
     `);
   });

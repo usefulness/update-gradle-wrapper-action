@@ -14,6 +14,7 @@
 
 import nock from 'nock';
 
+import {expect} from '@jest/globals';
 import {Releases} from '../src/releases';
 
 nock.disableNetConnect();
