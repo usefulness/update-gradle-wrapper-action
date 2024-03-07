@@ -347,8 +347,8 @@ class GitHubApi {
             return repo.default_branch;
         });
     }
-    createPullRequest({ branchName, target, title, body }) {
-        return __awaiter(this, void 0, void 0, function* () {
+    createPullRequest(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ branchName, target, title, body }) {
             const { data: pullRequest } = yield this.octokit.rest.pulls.create({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
