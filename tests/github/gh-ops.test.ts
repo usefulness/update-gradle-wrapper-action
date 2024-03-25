@@ -35,7 +35,9 @@ const defaultMockInputs: Inputs = {
   setDistributionChecksum: true,
   paths: [],
   pathsIgnore: [],
-  releaseChannel: ''
+  releaseChannel: '',
+  gitUserName: 'gradle-update-robot',
+  gitUserEmail: 'gradle-update-robot@regolo.cc'
 };
 
 const defaultMockGitHubApi: IGitHubApi = {

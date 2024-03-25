@@ -789,6 +789,8 @@ class ActionInputs {
         if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
             throw new Error('release-channel has unexpected value');
         }
+        this.gitUserName = core.getInput('git-user-name', { required: false });
+        this.gitUserEmail = core.getInput('git-user-email', { required: false });
     }
 }
 
@@ -1091,8 +1093,8 @@ class MainAction {
                 core.debug(`Wrappers count: ${wrappers.length}`);
                 const wrapperInfos = wrappers.map(path => (0, wrapperInfo_1.createWrapperInfo)(path));
                 const commitDataList = [];
-                yield git.config('user.name', 'gradle-update-robot');
-                yield git.config('user.email', 'gradle-update-robot@regolo.cc');
+                yield git.config('user.name', this.inputs.gitUserName);
+                yield git.config('user.email', this.inputs.gitUserEmail);
                 const baseBranch = this.inputs.baseBranch !== ''
                     ? this.inputs.baseBranch
                     : yield this.githubApi.repoDefaultBranch();

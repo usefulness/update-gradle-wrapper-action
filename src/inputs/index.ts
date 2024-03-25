@@ -25,6 +25,8 @@ export interface Inputs {
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
+  gitUserName: string;
+  gitUserEmail: string;
 }
 
 export function getInputs(): Inputs {
@@ -44,6 +46,8 @@ class ActionInputs implements Inputs {
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
+  gitUserName: string;
+  gitUserEmail: string;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -100,5 +104,7 @@ class ActionInputs implements Inputs {
     if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
       throw new Error('release-channel has unexpected value');
     }
+    this.gitUserName = core.getInput('git-user-name', {required: false});
+    this.gitUserEmail = core.getInput('git-user-email', {required: false});
   }
 }
