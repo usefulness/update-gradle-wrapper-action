@@ -43,6 +43,8 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
+        "gitUserEmail": "",
+        "gitUserName": "",
         "labels": [],
         "paths": [],
         "pathsIgnore": [],

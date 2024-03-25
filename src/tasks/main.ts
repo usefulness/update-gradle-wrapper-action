@@ -93,8 +93,8 @@ export class MainAction {
         sourceVersion: string;
       }[] = [];
 
-      await git.config('user.name', 'gradle-update-robot');
-      await git.config('user.email', 'gradle-update-robot@regolo.cc');
+      await git.config('user.name', this.inputs.gitUserName);
+      await git.config('user.email', this.inputs.gitUserEmail);
 
       const baseBranch =
         this.inputs.baseBranch !== ''

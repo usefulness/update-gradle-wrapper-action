@@ -45,6 +45,14 @@ inputs:
     description: 'Gradle release channel to be used (either `stable` or `release-candidate`).'
     required: false
     default: stable
+  git-user-name:
+    description: 'git user name used to commit files'
+    required: true
+    default: 'gradle-update-robot'
+  git-user-email:
+    description: 'git user email used to commit files'
+    required: true
+    default: 'gradle-update-robot@regolo.cc'
 
 runs:
   using: 'node20'
