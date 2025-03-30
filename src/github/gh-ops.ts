@@ -19,7 +19,7 @@ import {context, getOctokit} from '@actions/github';
 
 import {Inputs} from '../inputs';
 import {PullRequestData} from '../store';
-import {pullRequestText} from '../messages';
+import {replaceVersionPlaceholders, pullRequestText} from '../messages';
 import {Release} from '../releases';
 import {GitHubApi, IGitHubApi} from './gh-api';
 
@@ -72,11 +72,27 @@ export class GitHubOps {
 
     core.debug(`Target branch: ${targetBranch}`);
 
-    const {title, body} = pullRequestText(
-      distTypes,
-      targetRelease,
-      sourceVersion
-    );
+    let title, body;
+
+    if (this.inputs.prMessageTemplate) {
+      title = replaceVersionPlaceholders(
+        this.inputs.prTitleTemplate,
+        sourceVersion,
+        targetRelease.version
+      );
+      body = replaceVersionPlaceholders(
+        this.inputs.prMessageTemplate,
+        sourceVersion,
+        targetRelease.version
+      );
+    } else {
+      ({title, body} = pullRequestText(
+        this.inputs.prTitleTemplate,
+        distTypes,
+        targetRelease,
+        sourceVersion
+      ));
+    }
 
     const pullRequest = await this.api.createPullRequest({
       branchName: `refs/heads/${branchName}`,
@@ -100,6 +116,13 @@ export class GitHubOps {
       pullRequest.number,
       this.inputs.teamReviewers
     );
+
+    if (this.inputs.mergeMethod !== undefined) {
+      await this.api.enableAutoMerge(
+        pullRequest.number,
+        this.inputs.mergeMethod
+      );
+    }
 
     return {
       url: pullRequest.html_url,

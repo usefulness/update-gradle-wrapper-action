@@ -40,11 +40,17 @@ const defaultMockInputs: Inputs = {
   baseBranch: '',
   targetBranch: '',
   setDistributionChecksum: true,
+  distributionsBaseUrl: '',
   paths: [],
   pathsIgnore: [],
   releaseChannel: '',
   gitUserName: 'gradle-update-robot',
-  gitUserEmail: 'gradle-update-robot@regolo.cc'
+  gitUserEmail: 'gradle-update-robot@regolo.cc',
+  mergeMethod: undefined,
+  prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%',
+  prMessageTemplate: '',
+  commitMessageTemplate:
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -55,7 +61,8 @@ const defaultMockGitHubApi: IGitHubApi = {
   addLabels: jest.fn(),
   createLabelIfMissing: jest.fn(),
   createLabel: jest.fn(),
-  createComment: jest.fn()
+  createComment: jest.fn(),
+  enableAutoMerge: jest.fn()
 };
 
 beforeEach(() => {
@@ -152,8 +159,7 @@ describe('run', () => {
         '/path/to/gradle/wrapper/gradle-wrapper.properties',
         '/path/to/gradle/wrapper/gradle-wrapper.jar'
       ],
-      '1.0.1',
-      '1.0.0'
+      'Update Gradle Wrapper from 1.0.0 to 1.0.1'
     );
 
     expect(git.push).toHaveBeenCalledWith('gradlew-update-1.0.1');
