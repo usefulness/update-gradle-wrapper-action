@@ -14,16 +14,10 @@
 
 import * as github from '@actions/github';
 
-import nock from 'nock';
-
 import {GitHubOps} from '../../src/github/gh-ops';
 import {IGitHubApi} from '../../src/github/gh-api';
 import {Inputs} from '../../src/inputs/';
 import {Release} from '../../src/releases';
-
-nock.disableNetConnect();
-
-const nockScope = nock('https://api.github.com');
 
 const defaultMockInputs: Inputs = {
   repoToken: 's3cr3t',
@@ -33,11 +27,18 @@ const defaultMockInputs: Inputs = {
   baseBranch: '',
   targetBranch: '',
   setDistributionChecksum: true,
+  distributionsBaseUrl: '',
   paths: [],
   pathsIgnore: [],
   releaseChannel: '',
+  mergeMethod: undefined,
   gitUserName: 'gradle-update-robot',
-  gitUserEmail: 'gradle-update-robot@regolo.cc'
+  gitUserEmail: 'gradle-update-robot@regolo.cc',
+  prTitleTemplate:
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
+  prMessageTemplate: '',
+  commitMessageTemplate:
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -48,18 +49,28 @@ const defaultMockGitHubApi: IGitHubApi = {
   addLabels: jest.fn(),
   createLabelIfMissing: jest.fn(),
   createLabel: jest.fn(),
-  createComment: jest.fn()
+  createComment: jest.fn(),
+  enableAutoMerge: jest.fn()
 };
 
 let mockInputs: Inputs;
 let mockGitHubApi: IGitHubApi;
 let githubOps: GitHubOps;
+let mockOctokit: any;
 
 beforeEach(() => {
-  nock.cleanAll();
-
   mockInputs = Object.create(defaultMockInputs);
   mockGitHubApi = Object.create(defaultMockGitHubApi);
+
+  mockOctokit = {
+    rest: {
+      git: {
+        listMatchingRefs: jest.fn()
+      }
+    }
+  };
+
+  jest.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit);
 
   githubOps = new GitHubOps(mockInputs, mockGitHubApi);
 
@@ -96,6 +107,69 @@ describe('createPullRequest', () => {
         number: 42,
         title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
         body: 'Update Gradle Wrapper from 1.0.0 to 1.0.1'
+      });
+    });
+
+    it('creates a Pull Request with custom title', async () => {
+      mockInputs.prTitleTemplate = 'chore: Bump wrapper from 1.0.0 to 1.0.1';
+
+      await githubOps.createPullRequest(
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'chore: Bump wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'chore: Bump wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+    });
+
+    it('creates a Pull Request with custom message', async () => {
+      mockInputs.prMessageTemplate = 'Updated by gradle-wrapper-action';
+
+      await githubOps.createPullRequest(
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: 'Updated by gradle-wrapper-action'
+      });
+    });
+
+    it('creates a Pull Request with custom title and custom message', async () => {
+      mockInputs.prTitleTemplate = 'chore: Bump wrapper from 1.0.0 to 1.0.1';
+      mockInputs.prMessageTemplate = 'Updated by gradle-wrapper-action';
+
+      await githubOps.createPullRequest(
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'chore: Bump wrapper from 1.0.0 to 1.0.1',
+        body: 'Updated by gradle-wrapper-action'
       });
     });
 
@@ -319,7 +393,7 @@ describe('createPullRequest', () => {
           targetRelease,
           sourceVersion
         )
-      ).rejects.toThrowError('fetch repo error');
+      ).rejects.toThrow('fetch repo error');
     });
 
     it('throws if createPullRequest() throws', async () => {
@@ -336,49 +410,90 @@ describe('createPullRequest', () => {
           targetRelease,
           sourceVersion
         )
-      ).rejects.toThrowError('create pull request error');
+      ).rejects.toThrow('create pull request error');
     });
   });
 });
 
 describe('findMatchingRef', () => {
   it('some refs match', async () => {
-    nockScope
-      .get(
-        '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
-      )
-      .replyWithFile(200, `${__dirname}/fixtures/get_refs.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.git.listMatchingRefs.mockResolvedValue({
+      data: [
+        {
+          ref: 'refs/heads/gradlew-update-1.0.0',
+          url: 'https://api.github.com/repos/owner-name/repo-name/git/refs/heads/gradlew-update-1.0.0',
+          object: {
+            sha: '123abc',
+            type: 'commit',
+            url: 'https://api.github.com/repos/owner-name/repo-name/git/commits/123abc'
+          }
+        }
+      ]
+    });
 
     const ref = await githubOps.findMatchingRef('1.0.0');
 
     expect(ref).toBeDefined();
     expect(ref?.ref).toEqual('refs/heads/gradlew-update-1.0.0');
-    nockScope.done();
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
   });
 
-  it('no ref matches', async () => {
-    nockScope
-      .get(
-        '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
-      )
-      .reply(200, []);
+  it('refs exist but none match exactly', async () => {
+    mockOctokit.rest.git.listMatchingRefs.mockResolvedValue({
+      data: [
+        {
+          ref: 'refs/heads/gradlew-update-1.0.0-something-else',
+          url: 'https://api.github.com/repos/owner-name/repo-name/git/refs/heads/gradlew-update-1.0.0-something-else',
+          object: {
+            sha: '123abc',
+            type: 'commit',
+            url: 'https://api.github.com/repos/owner-name/repo-name/git/commits/123abc'
+          }
+        }
+      ]
+    });
 
     const ref = await githubOps.findMatchingRef('1.0.0');
 
     expect(ref).not.toBeDefined();
-    nockScope.done();
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
+  });
+
+  it('no ref matches', async () => {
+    mockOctokit.rest.git.listMatchingRefs.mockResolvedValue({
+      data: []
+    });
+
+    const ref = await githubOps.findMatchingRef('1.0.0');
+
+    expect(ref).not.toBeDefined();
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
   });
 
   it('throws on api error', async () => {
-    nockScope
-      .get(
-        '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
-      )
-      .reply(500);
+    mockOctokit.rest.git.listMatchingRefs.mockRejectedValue(
+      new Error('API error')
+    );
 
-    await expect(githubOps.findMatchingRef('1.0.0')).rejects.toThrowError();
-    nockScope.done();
+    await expect(githubOps.findMatchingRef('1.0.0')).rejects.toThrow(
+      'API error'
+    );
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
   });
 });

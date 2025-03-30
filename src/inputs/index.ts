@@ -22,11 +22,16 @@ export interface Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  distributionsBaseUrl: string;
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
   gitUserName: string;
   gitUserEmail: string;
+  mergeMethod: string | undefined;
+  prTitleTemplate: string;
+  prMessageTemplate: string;
+  commitMessageTemplate: string;
 }
 
 export function getInputs(): Inputs {
@@ -43,11 +48,16 @@ class ActionInputs implements Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  distributionsBaseUrl: string;
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
   gitUserName: string;
   gitUserEmail: string;
+  mergeMethod: string | undefined;
+  prTitleTemplate: string;
+  prMessageTemplate: string;
+  commitMessageTemplate: string;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -82,6 +92,10 @@ class ActionInputs implements Inputs {
         .getInput('set-distribution-checksum', {required: false})
         .toLowerCase() !== 'false';
 
+    this.distributionsBaseUrl = core.getInput('distributions-base-url', {
+      required: false
+    });
+
     this.paths = core
       .getInput('paths', {required: false})
       .split(/[\n,]/)
@@ -101,10 +115,39 @@ class ActionInputs implements Inputs {
     if (!this.releaseChannel) {
       this.releaseChannel = 'stable';
     }
+
     if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
       throw new Error('release-channel has unexpected value');
     }
     this.gitUserName = core.getInput('git-user-name', {required: false});
     this.gitUserEmail = core.getInput('git-user-email', {required: false});
+
+    this.mergeMethod = core.getInput('merge-method', {required: false});
+    if (!this.mergeMethod) {
+      this.mergeMethod = undefined;
+    }
+
+    this.prTitleTemplate = core
+      .getInput('pr-title-template', {required: false})
+      .trim();
+    if (!this.prTitleTemplate) {
+      this.prTitleTemplate =
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
+    }
+
+    this.prMessageTemplate = core
+      .getInput('pr-message-template', {required: false})
+      .trim();
+    if (!this.prMessageTemplate) {
+      this.prMessageTemplate = '';
+    }
+
+    this.commitMessageTemplate = core
+      .getInput('commit-message-template', {required: false})
+      .trim();
+    if (!this.commitMessageTemplate) {
+      this.commitMessageTemplate =
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
+    }
   }
 }

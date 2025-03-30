@@ -16,11 +16,12 @@ import * as core from '@actions/core';
 
 import * as store from '../store';
 
-import {components} from '@octokit/openapi-types';
 import {RequestError} from '@octokit/request-error';
 import {context, getOctokit} from '@actions/github';
+import type {RestEndpointMethodTypes} from '@octokit/plugin-rest-endpoint-methods';
 
-type PullsCreateResponseData = components['schemas']['pull-request'];
+type PullsCreateResponseData =
+  RestEndpointMethodTypes['pulls']['create']['response']['data'];
 
 export interface IGitHubApi {
   repoDefaultBranch: () => Promise<string>;
@@ -54,6 +55,11 @@ export interface IGitHubApi {
   createLabel: (labelName: string) => Promise<boolean>;
 
   createComment: (pullRequestNumber: number, body: string) => Promise<boolean>;
+
+  enableAutoMerge: (
+    pullRequestNumber: number,
+    mergeMethod: string
+  ) => Promise<void>;
 }
 
 export class GitHubApi implements IGitHubApi {
@@ -314,6 +320,84 @@ export class GitHubApi implements IGitHubApi {
         core.warning(`error: ${error.message}`);
       }
       return false;
+    }
+  }
+
+  async enableAutoMerge(
+    pullRequestNumber: number,
+    mergeMethod: string
+  ): Promise<void> {
+    try {
+      if (!['MERGE', 'REBASE', 'SQUASH'].includes(mergeMethod.toUpperCase())) {
+        core.error(
+          `merge-method must be one of the following (or not defined): 'MERGE', 'REBASE', or 'SQUASH'.`
+        );
+      }
+
+      core.info(
+        `Enabling Auto-Merge on ${context.repo.owner}/${context.repo.repo} PR# ${pullRequestNumber}`
+      );
+
+      const {
+        repository: {
+          pullRequest: {id: prId}
+        }
+      }: {
+        repository: {
+          pullRequest: {id: number};
+        };
+      } = await this.octokit.graphql(
+        `query GetPullRequestId($owner: String!, $repo: String!, $pullRequestNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pullRequestNumber) {
+                    id
+                  }
+                }
+              }`,
+        {
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          pullRequestNumber
+        }
+      );
+
+      core.debug(
+        `${context.repo.owner}/${context.repo.repo} PR# ${pullRequestNumber} -> PR ID: ${prId}`
+      );
+
+      const enablePullRequestAutoMergeResult = await this.octokit.graphql(
+        `mutation ($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+                  enablePullRequestAutoMerge(
+                    input: {
+                      pullRequestId: $pullRequestId,
+                      mergeMethod: $mergeMethod
+                    }
+                  ) {
+                    pullRequest {
+                      autoMergeRequest {
+                        enabledAt
+                        enabledBy {
+                          login
+                        }
+                      }
+                    }
+                  }
+                }`,
+        {
+          pullRequestId: prId,
+          mergeMethod: mergeMethod.toUpperCase()
+        }
+      );
+
+      core.debug(`enablePullRequestAutoMerge on PR ID: ${prId}:`);
+      core.debug(JSON.stringify(enablePullRequestAutoMergeResult, null, 2));
+    } catch (error) {
+      core.warning(
+        `Unable to enable automerge [${mergeMethod}] for PR ${pullRequestNumber}`
+      );
+      if (error instanceof Error) {
+        core.warning(`error: ${error.message}`);
+      }
     }
   }
 }

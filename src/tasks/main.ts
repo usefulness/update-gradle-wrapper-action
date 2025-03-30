@@ -19,6 +19,7 @@ import * as gitAuth from '../git/git-auth';
 import * as store from '../store';
 
 import {commit} from '../git/git-commit';
+import {replaceVersionPlaceholders} from '../messages';
 import {createWrapperInfo} from '../wrapperInfo';
 import {createWrapperUpdater} from '../wrapperUpdater';
 import {findWrapperPropertiesFiles} from '../wrapper/find';
@@ -130,7 +131,8 @@ export class MainAction {
         const updater = createWrapperUpdater(
           wrapper,
           targetRelease,
-          this.inputs.setDistributionChecksum
+          this.inputs.setDistributionChecksum,
+          this.inputs.distributionsBaseUrl
         );
 
         core.startGroup('Updating Wrapper');
@@ -159,7 +161,13 @@ export class MainAction {
           core.endGroup();
 
           core.startGroup('Committing');
-          await commit(modifiedFiles, targetRelease.version, wrapper.version);
+
+          const commitMessage = replaceVersionPlaceholders(
+            this.inputs.commitMessageTemplate,
+            wrapper.version,
+            targetRelease.version
+          );
+          await commit(modifiedFiles, commitMessage);
           core.endGroup();
 
           commitDataList.push({

@@ -1,8 +1,34 @@
 # Changelog
 
+## v2.1.0
+
+- Added input parameter `pr-message-template`.
+- Updated action dependencies.
+
+
+## v2.0.1
+
+- Updated action dependencies.
+
+## v2.0.0
+
+- Added input parameter `pr-title-template`, by @paulschuberth
+- Added input parameter `commit-message-template`, by @paulschuberth
+- Added input parameter `distributions-base-url`, by @yeikel
+- Updated action to run with Node 20, by @chadlwilson
+- Updated action dependencies.
+
+## v1.0.20
+
+- Added `auto-merge` input parameter, by @ChrisCarini
+
+## v1.0.19
+
+- Updated action dependencies.
+
 ## v1.0.18
 
-- Addedd support for release-candidate releases of Gradle (@bountin).
+- Added support for release-candidate releases of Gradle (@bountin).
 - Updated action dependencies.
 - Renamed `master` branch to `main`.
 

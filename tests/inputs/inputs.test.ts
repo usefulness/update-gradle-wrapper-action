@@ -15,7 +15,6 @@
 import * as core from '@actions/core';
 
 import {getInputs} from '../../src/inputs';
-import {expect, jest} from '@jest/globals';
 
 jest.mock('@actions/core');
 
@@ -32,7 +31,7 @@ describe('getInputs', () => {
   it('throws if repo-token is empty', () => {
     ymlInputs = {};
 
-    expect(() => getInputs()).toThrowError();
+    expect(() => getInputs()).toThrow();
   });
 
   it('sets default values for all inputs', () => {
@@ -43,11 +42,16 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
+        "commitMessageTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
+        "distributionsBaseUrl": "",
         "gitUserEmail": "",
         "gitUserName": "",
         "labels": [],
+        "mergeMethod": undefined,
         "paths": [],
         "pathsIgnore": [],
+        "prMessageTemplate": "",
+        "prTitleTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "releaseChannel": "stable",
         "repoToken": "s3cr3t",
         "reviewers": [],
@@ -190,6 +194,30 @@ describe('getInputs', () => {
     });
   });
 
+  describe('commitMessageTemplate', () => {
+    it('defaults to "Update Gradle Wrapper from %sourceVersion% to %targetVersion%"', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().commitMessageTemplate).toStrictEqual(
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+      );
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'commit-message-template':
+          'Change wrapper from %sourceVersion% to %targetVersion%'
+      };
+
+      expect(getInputs().commitMessageTemplate).toStrictEqual(
+        'Change wrapper from %sourceVersion% to %targetVersion%'
+      );
+    });
+  });
+
   describe('releaseChannel', () => {
     it('defaults to stable channel', () => {
       ymlInputs = {
@@ -214,7 +242,52 @@ describe('getInputs', () => {
         'release-channel': 'unexpected-channel'
       };
 
-      expect(() => getInputs()).toThrowError();
+      expect(() => getInputs()).toThrow();
+    });
+  });
+
+  describe('prTitleTemplate', () => {
+    it('defaults to "Update Gradle Wrapper from %sourceVersion% to %targetVersion%"', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().prTitleTemplate).toStrictEqual(
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+      );
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'pr-title-template':
+          'Change wrapper from %sourceVersion% to %targetVersion%'
+      };
+
+      expect(getInputs().prTitleTemplate).toStrictEqual(
+        'Change wrapper from %sourceVersion% to %targetVersion%'
+      );
+    });
+  });
+
+  describe('prMessageTemplate', () => {
+    it('defaults to empty string', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().prMessageTemplate).toStrictEqual('');
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'pr-message-template': 'Updated by gradle-wrapper-action'
+      };
+
+      expect(getInputs().prMessageTemplate).toStrictEqual(
+        'Updated by gradle-wrapper-action'
+      );
     });
   });
 });

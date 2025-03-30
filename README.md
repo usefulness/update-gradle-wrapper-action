@@ -28,7 +28,12 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`paths`](#paths)
   - [`paths-ignore`](#paths-ignore)
   - [`set-distribution-checksum`](#set-distribution-checksum)
+  - [`distributions-base-url`](#distributions-base-url)
   - [`release-channel`](#release-channel)
+  - [`merge-method`](#merge-method)
+  - [`pr-title-template`](#pr-title-template)
+  - [`pr-message-template`](#pr-message-template)
+  - [`commit-message-template`](#commit-message-template)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
@@ -61,10 +66,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Update Gradle Wrapper
-        uses: gradle-update/update-gradle-wrapper-action@v1
+        uses: gradle-update/update-gradle-wrapper-action@v2
 ```
 
 The action will run every day around midnight, check if a new Gradle version is
@@ -140,7 +145,12 @@ This is the list of supported inputs:
 | [`paths`](#paths) | List of paths where to search for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
 | [`paths-ignore`](#paths-ignore) | List of paths to be excluded when searching for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
+| [`distributions-base-url`](#distributions-base-url) | Set a custom url to download the Gradle Wrapper zip file from. | No | (empty) |
 | [`release-channel`](#release-channel) | Which Gradle release channel to use: either `stable` or `release-candidate`. | No | `stable` |
+| [`merge-method`](#merge-method) | Which merge method to use for [auto-merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request). Valid values include `MERGE`, `REBASE`, or `SQUASH`.  If unset, automerge will not be enabled on opened PRs. | No | (unset) No auto-merge |
+| [`pr-title-template`](#pr-title-template) | The template to use for the title of the pull request created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
+| [`pr-message-template`](#pr-message-template) | The template to use for the description of the pull request created by this action | No | (empty) |
+| [`commit-message-template`](#commit-message-template) | The template to use for the commit message created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
 
 ---
 
@@ -392,6 +402,23 @@ with:
 
 ---
 
+### `distributions-base-url`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `distributions-base-url` | Set a custom url to download the Gradle Wrapper zip file from. | No | (empty) |
+
+The base url to download the Gradle Wrapper zip file from. By default, the Gradle Wrapper update mechanism will download any newer version from the official repository.
+
+For example:
+
+```yaml
+with:
+  distributions-base-url: 'https://your-domain.com/gradle-release'
+```
+
+---
+
 ### `release-channel`
 
 | Name | Description | Required | Default |
@@ -406,6 +433,87 @@ For example:
 ```yaml
 with:
   release-channel: release-candidate
+```
+
+---
+
+### `merge-method`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| [`merge-method`](#merge-method) | Which merge method to use for [auto-merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request). Valid values include `MERGE`, `REBASE`, or `SQUASH`.  If unset, automerge will not be enabled on opened PRs. | No | (unset) No auto-merge |
+
+The merge method to use for [auto-merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request). By default auto-merge will not be enabled; set this to one of the valid merge methods to enable auto-merge.
+
+For example:
+
+```yaml
+with:
+  merge-method: SQUASH
+```
+
+---
+
+### `pr-title-template`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `pr-title-template` | The template to use for the title of the pull request created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
+
+This input is used for the title of the pull request created by this action. This allows, for example, for better integration into repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
+
+`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper respectively.
+
+There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string `undefined` will be used to replace the source version placeholder.
+
+For example:
+
+```yaml
+with:
+  pr-title-template: 'chore(deps): Bump Gradle Wrapper from %sourceVersion% to %targetVersion%'
+```
+
+---
+
+### `pr-message-template`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `pr-message-template` | The template to use for the description of the pull request created by this action | No | (empty) |
+
+This input is used for the description of the pull request created by this action.
+
+`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper respectively.
+
+There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string `undefined` will be used to replace the source version placeholder.
+
+For example:
+
+```yaml
+with:
+  pr-message-template: 'Upgrading the Gradle Wrapper from version %sourceVersion% to %targetVersion%.'
+```
+
+---
+
+### `commit-message-template`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `commit-message-template` | The template to use for the commit message created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
+
+This input is used for the message of the commit created by this action. This allows for better integration into
+repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
+
+`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper respectively.
+
+There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string `undefined` will be used to replace the source version placeholder.
+
+For example:
+
+```yaml
+with:
+  commit-message-template: 'chore(deps): Bump Gradle Wrapper from %sourceVersion% to %targetVersion%'
 ```
 
 ## Examples
@@ -477,7 +585,7 @@ with:
 - if `paths` is not empty, the paths that match the specified patterns are passed to the next step
 - if `paths-ignore` is not empty, the paths that match the specified patterns are removed from the list
 
-For example, the following configuration will srarch for Gradle Wrapper files in the `sub-project` directory and its subdirectories, but not in the `sub-project/examples` directory.
+For example, the following configuration will search for Gradle Wrapper files in the `sub-project` directory and its subdirectories, but not in the `sub-project/examples` directory.
 
 ```yaml
 with:
